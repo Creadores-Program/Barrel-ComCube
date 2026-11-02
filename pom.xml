@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.barrelmc.barrel</groupId>
-    <artifactId>Barrel-CREA-Classic</artifactId>
+    <artifactId>Barrel-ComCube</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <properties>
         <maven.compiler.source>11</maven.compiler.source>
@@ -15,14 +15,6 @@
     </properties>
 
     <repositories>
-        <repository>
-            <id>opencollab-repo-release</id>
-            <url>https://repo.opencollab.dev/maven-releases/</url>
-        </repository>
-        <repository>
-            <id>opencollab-repo-snapshot</id>
-            <url>https://repo.opencollab.dev/maven-snapshots/</url>
-        </repository>
         <repository>
 	        <id>jitpack.io</id>
 	        <url>https://jitpack.io</url>
@@ -39,7 +31,7 @@
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-bom</artifactId>
-                <version>4.2.12.Final</version>
+                <version>4.2.19.Final</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -48,17 +40,15 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.cloudburstmc.protocol</groupId>
-            <artifactId>bedrock-connection</artifactId>
-            <version>3.0.0.Beta6-SNAPSHOT</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
             <groupId>com.github.Creadores-Program</groupId>
             <artifactId>ClassicProtocolLib</artifactId>
             <version>-SNAPSHOT</version>
         </dependency>
-
+		<dependency>
+	        <groupId>com.github.Creadores-Program</groupId>
+	        <artifactId>ComCraftProtocolLib</artifactId>
+	        <version>-SNAPSHOT</version>
+	    </dependency>
         <dependency>
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
@@ -67,13 +57,13 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.44</version>
+            <version>1.18.48</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>com.alibaba.fastjson2</groupId>
             <artifactId>fastjson2</artifactId>
-            <version>2.0.61</version>
+            <version>2.0.66</version>
         </dependency>
 		<dependency>
 			<groupId>com.squareup.okhttp3</groupId>
@@ -83,7 +73,7 @@
 		<dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
-            <version>2.13.2</version>
+            <version>2.15.0</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>
