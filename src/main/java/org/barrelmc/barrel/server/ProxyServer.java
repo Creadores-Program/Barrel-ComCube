@@ -5,37 +5,24 @@
 
 package org.barrelmc.barrel.server;
 
-import com.github.steveice10.mc.classic.protocol.data.heartbeat.ServerInfo;
-import com.github.steveice10.mc.classic.protocol.data.heartbeat.ServerInfoBuilder;
-import com.github.steveice10.mc.classic.protocol.ClassicConstants;
-import com.github.steveice10.mc.classic.protocol.ClassicProtocol;
-import com.github.steveice10.mc.classic.protocol.VerifyUsersListener;
+import com.github.steveice10.comcraft.protocol.ComcraftConstants;
+import com.github.steveice10.comcraft.protocol.ComcraftProtocol;
 import com.github.steveice10.mc.classic.protocol.data.game.ExtNames;
-import com.github.steveice10.mc.classic.protocol.packet.server.ServerExtEntryPacket;
-import com.github.steveice10.mc.classic.protocol.packet.server.ServerSetTextColorPacket;
+import com.github.steveice10.mc.classic.protocol.packet.client.ClientExtEntryPacket;
 import com.github.steveice10.packetlib.Server;
-import com.github.steveice10.packetlib.tcp.classic.TcpSessionFactory;
+import com.github.steveice10.packetlib.tcp.comcraft.TcpSessionFactory;
 import com.github.steveice10.packetlib.event.server.ServerAdapter;
 import com.github.steveice10.packetlib.event.server.ServerClosedEvent;
 import com.github.steveice10.packetlib.event.server.SessionAddedEvent;
 import com.github.steveice10.packetlib.event.server.SessionRemovedEvent;
 import lombok.Getter;
 import org.barrelmc.barrel.config.Config;
-import org.barrelmc.barrel.network.ClassicPacketHandler;
+import org.barrelmc.barrel.network.ComcraftPacketHandler;
 import org.barrelmc.barrel.player.LoginDataConstants;
 import org.barrelmc.barrel.player.Player;
 import org.barrelmc.barrel.utils.FileManager;
 import org.barrelmc.barrel.utils.NbtBlockDefinitionRegistry;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import org.cloudburstmc.nbt.NBTInputStream;
-import org.cloudburstmc.nbt.NbtMap;
-import org.cloudburstmc.nbt.NbtType;
-import org.cloudburstmc.nbt.NbtUtils;
-import org.cloudburstmc.protocol.bedrock.codec.BedrockCodec;
-import org.cloudburstmc.protocol.bedrock.codec.BedrockCodecHelper;
-import org.cloudburstmc.protocol.bedrock.codec.BaseBedrockCodecHelper;
-import org.cloudburstmc.protocol.bedrock.codec.v662.Bedrock_v662;
-import org.cloudburstmc.protocol.bedrock.data.EncodingSettings;
 import org.yaml.snakeyaml.Yaml;
 import org.barrelmc.barrel.utils.Logger;
 import org.barrelmc.barrel.utils.nukkit.TextFormat;
@@ -55,13 +42,7 @@ public class ProxyServer {
     @Getter
     private static ProxyServer instance = null;
     @Getter
-    private final Map<String, Player> bedrockPlayers = new ConcurrentHashMap<>();
-    @Getter
-    private final BedrockCodec bedrockPacketCodec = Bedrock_v662.CODEC.toBuilder().helper(()->{ 
-        BaseBedrockCodecHelper codec = (BaseBedrockCodecHelper) Bedrock_v662.CODEC.createHelper();
-        codec.setEncodingSettings(EncodingSettings.CLIENT);
-        return (BedrockCodecHelper) codec;
-    }).build();
+    private final Map<String, Player> classicPlayers = new ConcurrentHashMap<>();
 
     @Getter
     private final Path dataPath;
@@ -70,76 +51,33 @@ public class ProxyServer {
     private Config config;
 
     @Getter
-    private String defaultSkinData;
-    @Getter
-    private String defaultSkinGeometry;
-
-    @Getter
     private NbtBlockDefinitionRegistry blockDefinitions;
 
     @Getter
     private Logger logger;
 
     @Getter
-    private String subMotd = "Connect to Bedrock Server maxspeed=1.4 -push jumps=1 -respawn";
-
-    @Getter
-    private final LanguageManager langManager;
-
-    @Getter
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
     @Getter
-    private List<ServerExtEntryPacket> extDatapacks = new ObjectArrayList<>(){{
-        add(new ServerExtEntryPacket(1, ExtNames.CLICKDISTANCE));//0
-        add(new ServerExtEntryPacket(1, ExtNames.CUSTOMBLOCKS));//1
-        add(new ServerExtEntryPacket(2, ExtNames.EXTPLAYERLIST));//2
-        add(new ServerExtEntryPacket(1, ExtNames.ENVCOLORS));//3
-        add(new ServerExtEntryPacket(1, ExtNames.CHANGEMODEL));//4
-        add(new ServerExtEntryPacket(1, ExtNames.ENVWEATHERTYPE));//5
-        add(new ServerExtEntryPacket(1, ExtNames.HACKCONTROL));//6
-        add(new ServerExtEntryPacket(1, ExtNames.EMOTEFIX));//7
-        add(new ServerExtEntryPacket(1, ExtNames.MESSAGETYPES));//8
-        add(new ServerExtEntryPacket(1, ExtNames.LONGERMESSAGES));//9
-        add(new ServerExtEntryPacket(1, ExtNames.BULKBLOCKUPDATE));//10
-        add(new ServerExtEntryPacket(1, ExtNames.PLAYERCLICK));//11
-        add(new ServerExtEntryPacket(1, ExtNames.INSTANTMOTD));//12
-        add(new ServerExtEntryPacket(1, ExtNames.SETSPAWNPOINT));//13
-        add(new ServerExtEntryPacket(1, ExtNames.EXTENTITYTELEPORT));//14
-        add(new ServerExtEntryPacket(1, ExtNames.FULLCP437));//15
-        add(new ServerExtEntryPacket(2, ExtNames.MESSAGETYPES));//16
-        add(new ServerExtEntryPacket(1, ExtNames.TEXTCOLORS));//17
-    }};
-
-    @Getter
-    private List<ServerSetTextColorPacket> colorsMC = new ObjectArrayList<>(){{
-        add(new ServerSetTextColorPacket(221, 214, 5, 255, TextFormat.MINECOIN_GOLD));//Minecoin Gold
-        add(new ServerSetTextColorPacket(227, 212, 209, 255, TextFormat.MATERIAL_QUARTZ_MC));//Material Quartz
-        add(new ServerSetTextColorPacket(206, 202, 202, 255, TextFormat.MATERIAL_IRON_MC));//Material Iron
-        add(new ServerSetTextColorPacket(68, 58, 59, 255, TextFormat.MATERIAL_NETHERITE_MC));//Material Netherite
-        add(new ServerSetTextColorPacket(151, 22, 7, 255, TextFormat.MATERIAL_REDSTONE_MC));//Material Redstone
-        add(new ServerSetTextColorPacket(180, 104, 77, 255, TextFormat.MATERIAL_COPPER_MC));//Material Copper
-        add(new ServerSetTextColorPacket(222, 177, 45, 255, TextFormat.MATERIAL_GOLD_MC));//Material Gold
-        add(new ServerSetTextColorPacket(17, 160, 54, 255, TextFormat.MATERIAL_EMERALD_MC));//Material Emerald
-        add(new ServerSetTextColorPacket(44, 186, 168, 255, TextFormat.MATERIAL_DIAMOND_MC));//Material Diamond
-        add(new ServerSetTextColorPacket(33, 73, 123, 255, TextFormat.MATERIAL_LAPIS_MC));//Material Lapis
-        add(new ServerSetTextColorPacket(154, 92, 168, 255, TextFormat.MATERIAL_AMETHYST_MC));//Material Amethyst
-        add(new ServerSetTextColorPacket(234, 113, 19, 255, TextFormat.MATERIAL_RESIN_MC));//Material Resin
+    private List<ClientExtEntryPacket> extDatapacks = new ObjectArrayList<>(){{
+        add(new ClientExtEntryPacket(1, ExtNames.CUSTOMBLOCKS));//0
+        add(new ClientExtEntryPacket(1, ExtNames.HACKCONTROL));//1
+        add(new ClientExtEntryPacket(1, ExtNames.BULKBLOCKUPDATE));//2
+        add(new ClientExtEntryPacket(1, ExtNames.EXTENTITYTELEPORT));//3
     }};
 
     public ProxyServer(String dataPath) {
         instance = this;
-        this.logger = new Logger(TextFormat.LIGHT_PURPLE.getAnsiCode()+"BarrelMC");
-        this.getLogger().info("Barrel Classic 0.1.0 Starting...");
+        this.logger = new Logger(TextFormat.DARK_PURPLE.getAnsiCode()+"BarrelMC");
+        this.getLogger().info("Barrel ComCube 0.1.0 Starting...");
         this.dataPath = Paths.get(dataPath);
         if (!initConfig()) {
             this.getLogger().emergency("Config file not found! Terminating...");
             System.exit(1);
         }
-        this.langManager = new LanguageManager();
         loadBlockDefinitions();
-        loadDefaultSkin();
-        LoginDataConstants.SERVER_ADDRESS_VAL = this.config.getBedrockAddress() + ":" + this.config.getBedrockPort();
+        LoginDataConstants.SERVER_ADDRESS_VAL = this.config.getClassicAddress() + ":" + this.config.getClassicPort();
         startServer();
     }
 
@@ -179,26 +117,13 @@ public class ProxyServer {
         }
     }
 
-    private void loadDefaultSkin() {
-        try {
-            defaultSkinData = FileManager.getFileContents(Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream("skin/skin_data.txt")));
-            defaultSkinGeometry = FileManager.getFileContents(Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream("skin/skin_geometry.json")));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
     private void startServer() {
-        Server server = new Server(this.config.getBindAddress(), this.config.getPort(), ClassicProtocol.class, new TcpSessionFactory());
-        if (this.config.getPremiumPlayerClassic()) {
-            server.addListener(new VerifyUsersListener());
-            server.setGlobalFlag(ClassicConstants.SERVER_INFO_BUILDER_KEY, (ServerInfoBuilder) s -> new ServerInfo(this.config.getMotd(), server.getPort(), true, 0, this.config.getMaxplayers()));
-        }
+        Server server = new Server(this.config.getBindAddress(), this.config.getPort(), ComcraftProtocol.class, new TcpSessionFactory());
         String StopMSG = this.config.getShutdownMessage();
         server.addListener(new ServerAdapter() {
             @Override
             public void serverClosed(ServerClosedEvent event) {
-                for(var entry : ProxyServer.getInstance().getBedrockPlayers().entrySet()){
+                for(var entry : ProxyServer.getInstance().getClassicPlayers().entrySet()){
                     Player player = entry.getValue();
                     player.disconnect(StopMSG);
                 }
@@ -206,13 +131,13 @@ public class ProxyServer {
             }
             @Override
             public void sessionAdded(SessionAddedEvent event) {
-                event.getSession().addListener(new ClassicPacketHandler());
+                event.getSession().addListener(new ComcraftPacketHandler());
             }
             @Override
             public void sessionRemoved(SessionRemovedEvent event) {
-                String username = event.getSession().getFlag(ClassicConstants.USERNAME_KEY);
+                String username = event.getSession().getFlag(ComcraftConstants.USERNAME_KEY);
                 if (username == null) return;
-                if(isBedrockPlayer(username)){
+                if(isClassicPlayer(username)){
                     getPlayerByName(username).disconnect("logged out");
                 }
                 getLogger().info(username + " logged out");
@@ -220,33 +145,23 @@ public class ProxyServer {
         });
         getLogger().info("Binding to " + this.config.getBindAddress() + " on port " + this.config.getPort());
         server.bind();
-        if(this.config.getPremiumPlayerClassic()){
-            getLogger().info("Waiting for Heartbeat URL...");
-            new Thread(()->{
-                while(!server.hasGlobalFlag(ClassicConstants.SERVER_URL_KEY)) {
-                    try { Thread.sleep(250); } catch(InterruptedException e) {}
-                }
-                String serverUrl = server.getGlobalFlag(ClassicConstants.SERVER_URL_KEY);
-                getLogger().info("Server is public at: " + serverUrl);
-            }).start();
-        }
-        getLogger().info("BarrelProxy " + TextFormat.GREEN.getAnsiCode() + "CREA " + TextFormat.AQUA.getAnsiCode() + "Classic" + TextFormat.RESET.getAnsiCode() + " is running on [" + this.config.getBindAddress() + ":" + this.config.getPort() + "]");
+        getLogger().info("BarrelProxy " + TextFormat.GRAY.getAnsiCode() + "Com" + TextFormat.LIGHT_PURPLE.getAnsiCode() + "Cube" + TextFormat.RESET.getAnsiCode() + " is running on [" + this.config.getBindAddress() + ":" + this.config.getPort() + "]");
         getLogger().info("Done!");
     }
 
     public Player getPlayerByName(String username) {
-        return this.bedrockPlayers.get(username);
+        return this.classicPlayers.get(username);
     }
 
-    public void addBedrockPlayer(Player player) {
-        this.bedrockPlayers.put(player.getClassicUsername(), player);
+    public void addClassicPlayer(Player player) {
+        this.classicPlayers.put(player.getClassicUsername(), player);
     }
 
-    public void removeBedrockPlayer(String classicUsername) {
-        this.bedrockPlayers.remove(classicUsername);
+    public void removeClassicPlayer(String comcraftUsername) {
+        this.classicPlayers.remove(comcraftUsername);
     }
 
-    public boolean isBedrockPlayer(String username) {
-        return this.bedrockPlayers.containsKey(username);
+    public boolean isClassicPlayer(String username) {
+        return this.classicPlayers.containsKey(username);
     }
 }

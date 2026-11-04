@@ -9,7 +9,6 @@ import lombok.Getter;
 import lombok.Setter;
 
 public class Config {
-
     @Setter
     @Getter
     public String bindAddress;
@@ -20,19 +19,11 @@ public class Config {
 
     @Setter
     @Getter
-    public String motd;
+    public String classicAddress;
 
     @Setter
     @Getter
-    public String bedrockAddress;
-
-    @Setter
-    @Getter
-    public Integer bedrockPort;
-
-    @Setter
-    @Getter
-    public String auth;
+    public Integer classicPort;
     
     @Setter
     @Getter
@@ -40,9 +31,5 @@ public class Config {
     
     @Setter
     @Getter
-    public String shutdownMessage;
-    
-    @Setter
-    @Getter
-    public Boolean premiumPlayerClassic;
+    public String shutdownMessage;    
 }
