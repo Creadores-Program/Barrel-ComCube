@@ -5,12 +5,6 @@
 
 package org.barrelmc.barrel.network;
 
-import com.github.steveice10.mc.classic.protocol.packet.client.ClientIdentificationPacket;
-import com.github.steveice10.mc.classic.protocol.packet.server.ServerExtInfoPacket;
-import com.github.steveice10.mc.classic.protocol.packet.server.ServerExtEntryPacket;
-import com.github.steveice10.mc.classic.protocol.packet.server.ServerIdentificationPacket;
-import com.github.steveice10.mc.classic.protocol.ClassicConstants;
-import com.github.steveice10.mc.classic.protocol.data.game.UserType;
 import com.github.steveice10.packetlib.Session;
 import com.github.steveice10.packetlib.event.session.PacketReceivedEvent;
 import com.github.steveice10.packetlib.event.session.PacketSentEvent;
@@ -19,13 +13,10 @@ import com.github.steveice10.packetlib.event.session.SessionAdapter;
 import com.github.steveice10.packetlib.packet.Packet;
 import org.barrelmc.barrel.player.Player;
 import org.barrelmc.barrel.server.ProxyServer;
-import org.barrelmc.barrel.utils.Utils;
 
 public class ClassicPacketHandler extends SessionAdapter {
 
     private Player player = null;
-
-    private static final String serverSoftware = "Barrel Crea Classic";
 
     @Override
     public void packetSent(PacketSentEvent event) {
@@ -45,26 +36,6 @@ public class ClassicPacketHandler extends SessionAdapter {
         Session session = event.getSession();
         Packet packet = event.getPacket();
         //System.out.println("Received Classic " + packet.toString());
-        if (this.player == null) {
-            if (packet instanceof ClientIdentificationPacket) {
-                ClientIdentificationPacket loginPacket = (ClientIdentificationPacket) packet;
-                session.setFlag(ClassicConstants.USERNAME_KEY, loginPacket.getUsername());
-                ProxyServer.getInstance().getLogger().info(session.getFlag(ClassicConstants.USERNAME_KEY) + " logged in");
-                new Player(loginPacket, session);
-                this.player = ProxyServer.getInstance().getPlayerByName(loginPacket.getUsername());
-                if(loginPacket.isCPE()){
-                    player.getClassicSession().send(new ServerExtInfoPacket(serverSoftware, ((short) ProxyServer.getInstance().getExtDatapacks().size())));
-                    for(ServerExtEntryPacket extS : ProxyServer.getInstance().getExtDatapacks()){
-                        player.getClassicSession().send(extS);
-                    }
-                }else{
-                    player.getClassicSession().send(new ServerIdentificationPacket(ProxyServer.getInstance().getConfig().getMotd(), ProxyServer.getInstance().getSubMotd(), UserType.NOT_OP));
-                    player.getClassicSession().send(Utils.INITCCWORPK);
-                    player.startSendingPing();
-                }
-            }
-        } else {
-            player.getPacketTranslatorManager().translate(packet);
-        }
+        player.getPacketTranslatorManager().translate(packet);
     }
 }
