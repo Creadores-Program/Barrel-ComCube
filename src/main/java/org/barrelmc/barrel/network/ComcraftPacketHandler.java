@@ -37,6 +37,7 @@ public class ComcraftPacketHandler extends SessionAdapter {
                 ClientLoginPacket loginPacket = (ClientLoginPacket) packet;
                 ProxyServer.getInstance().getLogger().info(session.getFlag(ComcraftConstants.USERNAME_KEY) + " logged in");
                 new Player(loginPacket, session);
+                this.player = ProxyServer.getInstance().getPlayerByName(loginPacket.getUsername());
             }
         }else{
             player.getPacketTranslatorManager().translate(packet);
