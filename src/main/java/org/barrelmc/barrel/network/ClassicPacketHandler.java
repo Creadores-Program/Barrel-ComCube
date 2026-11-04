@@ -18,6 +18,10 @@ public class ClassicPacketHandler extends SessionAdapter {
 
     private Player player = null;
 
+    public ClassicPacketHandler(Player player){
+        this.player = player;
+    }
+
     @Override
     public void packetSent(PacketSentEvent event) {
         //System.out.println("Sent Java " + event.getPacket().toString());
