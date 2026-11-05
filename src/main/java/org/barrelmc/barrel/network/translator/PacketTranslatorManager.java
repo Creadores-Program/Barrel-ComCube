@@ -66,5 +66,12 @@ public class PacketTranslatorManager {
         classicTranslators.put(ServerExtEntryPacket.class, new ExtEntryPacket());
         classicTranslators.put(ServerExtInfoPacket.class, new ExtInfoPacket());
         classicTranslators.put(ServerCustomBlockSupportLevelPacket.class, new CustomBlockSupportLevelPacket());
+        classicTranslators.put(ServerBulkBlockUpdatePacket.class, new BulkBlockUpdatePacket());
+        classicTranslators.put(ServerDespawnPlayerPacket.class, new DespawnPlayerPacket());
+        classicTranslators.put(ServerIdentificationPacket.class, new IdentificationPacket());
+        classicTranslators.put(ServerLevelDataPacket.class, new LevelDataPacket());
+        classicTranslators.put(ServerLevelFinalizePacket.class, new LevelFinalizePacket());
+        classicTranslators.put(ServerLevelInitializePacket.class, new LevelInitializePacket());
+        classicTranslators.put(ServerSpawnPlayerPacket.class, new SpawnPlayerPacket());
     }
 }

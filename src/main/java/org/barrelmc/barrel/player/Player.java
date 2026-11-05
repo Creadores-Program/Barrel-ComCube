@@ -9,13 +9,9 @@ import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.github.steveice10.mc.classic.protocol.data.game.PlayerIds;
 import com.github.steveice10.mc.classic.protocol.packet.client.ClientExtEntryPacket;
-import com.github.steveice10.mc.classic.protocol.packet.server.ServerChatPacket;
-import com.github.steveice10.mc.classic.protocol.packet.server.ServerPingPacket;
-import com.github.steveice10.mc.classic.protocol.packet.server.ServerSetClickDistancePacket;
 import com.github.steveice10.mc.classic.protocol.packet.client.ClientIdentificationPacket;
 import com.github.steveice10.mc.classic.protocol.packet.server.ServerLevelDataPacket;
 import com.github.steveice10.mc.classic.protocol.packet.server.ServerLevelFinalizePacket;
-import com.github.steveice10.mc.classic.protocol.packet.server.ServerSetTextColorPacket;
 import com.github.steveice10.packetlib.Session;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
@@ -31,20 +27,6 @@ import org.barrelmc.barrel.network.translator.PacketTranslatorManager;
 import org.barrelmc.barrel.server.ProxyServer;
 import org.barrelmc.barrel.utils.Utils;
 import org.barrelmc.barrel.utils.nukkit.TextFormat;
-import org.cloudburstmc.math.vector.Vector2f;
-import org.cloudburstmc.math.vector.Vector3f;
-import org.cloudburstmc.math.vector.Vector3i;
-import org.cloudburstmc.netty.channel.raknet.RakChannelFactory;
-import org.cloudburstmc.netty.channel.raknet.config.RakChannelOption;
-import org.cloudburstmc.protocol.bedrock.BedrockClientSession;
-import org.cloudburstmc.protocol.bedrock.data.*;
-import org.cloudburstmc.protocol.bedrock.data.inventory.transaction.ItemUseTransaction;
-import org.cloudburstmc.protocol.bedrock.netty.initializer.BedrockClientInitializer;
-import org.cloudburstmc.protocol.bedrock.packet.LoginPacket;
-import org.cloudburstmc.protocol.bedrock.packet.PlayerAuthInputPacket;
-import org.cloudburstmc.protocol.bedrock.packet.RequestNetworkSettingsPacket;
-import org.cloudburstmc.protocol.bedrock.packet.StartGamePacket;
-import org.cloudburstmc.protocol.bedrock.util.EncryptionUtils;
 
 import java.net.InetSocketAddress;
 import java.security.*;
@@ -69,18 +51,11 @@ import java.util.zip.GZIPOutputStream;
 public class Player extends Vector3 {
 
     @Getter
-    private final Session classicSession;
+    private final Session comcraftSession;
     @Getter
-    private BedrockClientSession bedrockClientSession;
-    @Getter
-    private Channel channel;
+    private Session classicSession;
     @Getter
     private final PacketTranslatorManager packetTranslatorManager;
-
-    @Getter
-    private ECPublicKey publicKey;
-    @Getter
-    private ECPrivateKey privateKey;
 
     @Setter
     @Getter
@@ -89,76 +64,15 @@ public class Player extends Vector3 {
     private String username;
     @Getter
     private String classicUsername;
-    @Getter
-    private String xuid;
-    @Getter
-    private String UUID;
-
-    @Setter
-    @Getter
-    private String scoreId;
-
-    @Setter
-    @Getter
-    private StartGamePacket startGamePacketCache;
-
-    @Setter
-    @Getter
-    private boolean traslateAd = false;
 
     @Getter
     private EnvCPE envCpe = null;
 
-    private boolean tickPlayerInputStarted = false;
-    private final ScheduledExecutorService playerInputExecutor = Executors.newScheduledThreadPool(4);
+    private final ScheduledExecutorService playerInputExecutor = Executors.newScheduledThreadPool(3);
     
     @Getter
     private final ExecutorService worldThread = Executors.newCachedThreadPool();
 
-    @Setter
-    @Getter
-    private Vector3f oldPosition;
-
-    @Setter
-    @Getter
-    private Vector3f lastServerPosition;
-
-    @Setter
-    @Getter
-    private Vector2f lastServerRotation;
-
-    @Setter
-    @Getter
-    private boolean isImmobile = false;
-
-    @Setter
-    @Getter
-    private boolean isSneaking = false;
-    @Setter
-    @Getter
-    private boolean isSprinting = false;
-    @Setter
-    @Getter
-    private PlayerActionType diggingStatus;
-    @Setter
-    @Getter
-    private Vector3i diggingPosition;
-
-    @Setter
-    @Getter
-    private GameType gameMode = GameType.ADVENTURE;
-
-    @Getter
-    private final Set<PlayerAuthInputData> playerAuthInputData = EnumSet.noneOf(PlayerAuthInputData.class);
-    @Getter
-    private final List<PlayerBlockActionData> playerAuthInputActions = new ObjectArrayList<>();
-    @Setter
-    @Getter
-    private ItemUseTransaction playerAuthInputItemUseTransaction = null;
-
-    @Getter
-    @Setter
-    private int hotbarSlot = 0;
 
     @Getter
     private List<ClientExtEntryPacket> extensionsClassic = new ObjectArrayList<>();
@@ -169,58 +83,15 @@ public class Player extends Vector3 {
 
     private static final ServerLevelFinalizePacket FINALIZE_WORLD_PK = new ServerLevelFinalizePacket(256, 256, 256);
 
-    public static final ServerSetClickDistancePacket REACH_SURVIVAL = new ServerSetClickDistancePacket((short) 160);
-
-    public static final ServerSetClickDistancePacket REACH_CREATIVE = new ServerSetClickDistancePacket((short) 224);
-
-    private static final ServerChatPacket CLEAR_TIP_PK = new ServerChatPacket(PlayerIds.BOTTOMRIGHT3, TextFormat.VOID_STR);
-
-    private static final ServerChatPacket CLEAR_TITLE_PK = new ServerChatPacket(PlayerIds.ANNOUNCEMENT, TextFormat.VOID_STR);
-
-    private static final ServerChatPacket CLEAR_TOAST_PK1 = new ServerChatPacket(PlayerIds.BOTTOMRIGHT1, TextFormat.VOID_STR);
-
-    private static final ServerChatPacket CLEAR_TOAST_PK2 = new ServerChatPacket(PlayerIds.BOTTOMRIGHT2, TextFormat.VOID_STR);
-
-    private static final ServerChatPacket CLEAR_BOSS_PK = new ServerChatPacket(PlayerIds.STATUS2, TextFormat.VOID_STR);
-
-    private static final ServerChatPacket CLEAR_SCORE_PK = new ServerChatPacket(PlayerIds.STATUS3, TextFormat.VOID_STR);
-
-    private static final String disconTransDerect = "disconnectionScreen.";
-
     @Getter
     private ByteBuffer mapClassic = ByteBuffer.allocateDirect(WORLDTOTALLEN);
-
-    @Getter
-    @Setter
-    private Vector3i minPosClassic = Vector3i.from(0, 0, 0);
-
-    @Getter
-    @Setter
-    private Vector3i maxPosClassic = Vector3i.from(255, 255, 255);
-
-    @Getter
-    @Setter
-    private Vector3i maxPosBedrock = Vector3i.from(127, 255, 127);
-
-    @Getter
-    @Setter
-    private Vector3i minPosBedrock = Vector3i.from(-128, 0, -128);
 
     @Getter
     @Setter
     private StatusWorld statusWorld = StatusWorld.LOGIN;
 
     @Getter
-    private PlayerForceSpawnThread playerForceSpawnThread;
-
-    public String msgPlayer = TextFormat.VOID_STR;
-
-    @Getter
     private LevelChunkProcess levelChunkProcess;
-
-    @Getter
-    @Setter
-    private int dimension = 0;
 
     @Getter
     @Setter
@@ -239,47 +110,17 @@ public class Player extends Vector3 {
     @Getter
     private Map<Long, Long> entitysIndex = new ConcurrentHashMap<>();
 
-    @Getter
-    @Setter
-    private long bossbarId;
-
-    @Getter
-    @Setter
-    private String bossbarTitle;
-
     private static final int MAXLENMSG = 64;
 
     private static final String CCP = "CC";
 
-    public static final EnumMap<GameType, ServerChatPacket> GAMEMODE_CC = new EnumMap<>(GameType.class);
-
-    static{
-        String gmstr = TextFormat.GREEN_CC+"GameMode: ";
-        GAMEMODE_CC.put(GameType.SURVIVAL, new ServerChatPacket(PlayerIds.STATUS1, gmstr + "Survival"));
-        GAMEMODE_CC.put(GameType.CREATIVE, new ServerChatPacket(PlayerIds.STATUS1, gmstr + "Creative"));
-        GAMEMODE_CC.put(GameType.ADVENTURE, new ServerChatPacket(PlayerIds.STATUS1, gmstr + "Adventure"));
-        GAMEMODE_CC.put(GameType.SPECTATOR, new ServerChatPacket(PlayerIds.STATUS1, gmstr + "Spectator"));
-        GAMEMODE_CC.put(GameType.DEFAULT, GAMEMODE_CC.get(GameType.SURVIVAL));
-    }
-
-    public Player(ClientIdentificationPacket loginPacket, Session classicSession) {
+    public Player(ClientLoginPacket loginPacket, Session comcraftSession) {
         this.envCpe = new EnvCPE(this);
         this.packetTranslatorManager = new PacketTranslatorManager(this);
-        this.classicSession = classicSession;
+        this.comcraftSession = comcraftSesssion;
         this.offlineLogin(loginPacket);
     }
 
-    public void startSendingPing(){
-        PlayerPingThread playerPingThread = new PlayerPingThread();
-        playerPingThread.player = this;
-        playerInputExecutor.scheduleAtFixedRate(playerPingThread, 0, 4, TimeUnit.SECONDS);
-    }
-
-    public void startForceSpawn(){
-        this.playerForceSpawnThread = new PlayerForceSpawnThread();
-        playerForceSpawnThread.player = this;
-        playerInputExecutor.scheduleAtFixedRate(playerForceSpawnThread, 0, 800, TimeUnit.MILLISECONDS);
-    }
     public void startLevelChunkProcess(){
         this.levelChunkProcess = new LevelChunkProcess();
         levelChunkProcess.player = this;
@@ -288,211 +129,14 @@ public class Player extends Vector3 {
         }
         playerInputExecutor.scheduleAtFixedRate(levelChunkProcess, 0, 800, TimeUnit.MILLISECONDS);
     }
-
-    public void startSendingPlayerInput() {
-        if (!tickPlayerInputStarted) {
-            tickPlayerInputStarted = true;
-
-            PlayerAuthInputThread playerAuthInputThread = new PlayerAuthInputThread();
-            playerAuthInputThread.player = this;
-            playerAuthInputThread.tick = getStartGamePacketCache().getCurrentTick();
-
-            playerInputExecutor.scheduleAtFixedRate(playerAuthInputThread, 0, 50, TimeUnit.MILLISECONDS);
-        }
-    }
     
-    private void offlineLogin(ClientIdentificationPacket classicLoginPacket) {
-        this.xuid = TextFormat.VOID_STR;
-        this.username = this.classicUsername = classicLoginPacket.getUsername();
-        this.UUID = java.util.UUID.nameUUIDFromBytes((CCP+this.classicUsername).getBytes(StandardCharsets.UTF_8)).toString();
+    private void offlineLogin(ClientLoginPacket comcraftLoginPacket) {
+        this.username = this.classicUsername = comcraftLoginPacket.getUsername();
         Config config = ProxyServer.getInstance().getConfig();
         InetSocketAddress bedrockAddress = new InetSocketAddress(config.getBedrockAddress(), config.getBedrockPort());
-        try {
-            channel = new Bootstrap().channelFactory(RakChannelFactory.client(NioDatagramChannel.class))
-                    .group(new NioEventLoopGroup())
-                    .option(RakChannelOption.RAK_PROTOCOL_VERSION, ProxyServer.getInstance().getBedrockPacketCodec().getRaknetProtocolVersion())
-                    .handler(new BedrockClientInitializer() {
-                        @Override
-                        protected void initSession(BedrockClientSession session) {
-                            bedrockClientSession = session;
-                            session.setCodec(ProxyServer.getInstance().getBedrockPacketCodec());
-                            session.setPacketHandler(new BedrockBatchHandler(Player.this));
-
-                            RequestNetworkSettingsPacket requestNetworkSettingsPacket = new RequestNetworkSettingsPacket();
-                            requestNetworkSettingsPacket.setProtocolVersion(ProxyServer.getInstance().getBedrockPacketCodec().getProtocolVersion());
-                            session.sendPacketImmediately(requestNetworkSettingsPacket);
-                        }
-                    })
-                    .connect(bedrockAddress)
-                    .awaitUninterruptibly().channel();
-            ProxyServer.getInstance().addBedrockPlayer(this);
+        try {//
         } catch (Exception exception) {
-            classicSession.disconnect("Failed to connect: " + exception);
-        }
-    }
-
-    public LoginPacket getLoginPacket() {
-        LoginPacket loginPacket = new LoginPacket();
-
-        KeyPair ecdsa384KeyPair = EncryptionUtils.createKeyPair();
-        this.publicKey = (ECPublicKey) ecdsa384KeyPair.getPublic();
-        this.privateKey = (ECPrivateKey) ecdsa384KeyPair.getPrivate();
-
-        String publicKeyBase64 = Base64.getEncoder().encodeToString(this.publicKey.getEncoded());
-
-        JSONObject chain = new JSONObject();
-        chain.put(LoginDataConstants.EXP, Instant.now().getEpochSecond() + TimeUnit.HOURS.toSeconds(6));
-        chain.put(LoginDataConstants.IDENTITYPUBLICKEY, publicKeyBase64);
-        chain.put(LoginDataConstants.NBF, Instant.now().getEpochSecond() - TimeUnit.HOURS.toSeconds(6));
-
-        JSONObject extraData = new JSONObject();
-        extraData.put(LoginDataConstants.IDENTITY, this.UUID);
-        extraData.put(LoginDataConstants.XUID, this.xuid);
-        extraData.put(LoginDataConstants.DISPLAYNAME, this.username);
-        chain.put(LoginDataConstants.EXTRADATA, extraData);
-
-        JSONObject jwtHeader = new JSONObject();
-        jwtHeader.put(LoginDataConstants.ALG, LoginDataConstants.ALG_VAL);
-        jwtHeader.put(LoginDataConstants.X5U, publicKeyBase64);
-
-        String jwt = generateJwt(jwtHeader, chain);
-
-        JSONArray chainDataJsonArray = new JSONArray();
-        chainDataJsonArray.add(jwt);
-
-        for (Object o : chainDataJsonArray) {
-            loginPacket.getChain().add((String) o);
-        }
-
-        loginPacket.setExtra(this.getSkinData());
-        loginPacket.setProtocolVersion(ProxyServer.getInstance().getBedrockPacketCodec().getProtocolVersion());
-        return loginPacket;
-    }
-
-    private String getSkinData() {
-        String publicKeyBase64 = Base64.getEncoder().encodeToString(this.publicKey.getEncoded());
-
-        JSONObject jwtHeader = new JSONObject();
-        jwtHeader.put(LoginDataConstants.ALG, LoginDataConstants.ALG_VAL);
-        jwtHeader.put(LoginDataConstants.X5U, publicKeyBase64);
-
-        JSONObject skinData = new JSONObject();
-
-        skinData.put(LoginDataConstants.ANIMATEDIMAGEDATA, new JSONArray());
-        skinData.put(LoginDataConstants.ARMSIZE, TextFormat.VOID_STR);
-        skinData.put(LoginDataConstants.CAPEDATA, TextFormat.VOID_STR);
-        skinData.put(LoginDataConstants.CAPEID, TextFormat.VOID_STR);
-        skinData.put(LoginDataConstants.PLAY_FAB_ID, java.util.UUID.randomUUID().toString());
-        skinData.put(LoginDataConstants.CAPE_HEIGHT, 0);
-        skinData.put(LoginDataConstants.CAPE_WIDTH, 0);
-        skinData.put(LoginDataConstants.CAPE_ON_CLASSIC, false);
-        skinData.put(LoginDataConstants.CLIENT_RANDOM_ID, new Random().nextLong());
-        skinData.put(LoginDataConstants.CHUNK_GEN, false);
-        skinData.put(LoginDataConstants.CURRENT_INPUT, 1);
-        skinData.put(LoginDataConstants.DEFAULT_INPUT, 1);
-        skinData.put(LoginDataConstants.DEVICE_ID, java.util.UUID.randomUUID().toString());
-        skinData.put(LoginDataConstants.DEVICE_MODEL, LoginDataConstants.DEVICE_MODEL_VAL);
-        skinData.put(LoginDataConstants.DEVICE_OS, 7);
-        skinData.put(LoginDataConstants.GAME_VERSION, ProxyServer.getInstance().getBedrockPacketCodec().getMinecraftVersion());
-        skinData.put(LoginDataConstants.GUI_SCALE, 0);
-        skinData.put(LoginDataConstants.LANG_CODE, LoginDataConstants.LANG_CODE_VAL);
-        skinData.put(LoginDataConstants.PERSONA_PIECES, LoginDataConstants.VOID_JSON_ARRAY);
-        skinData.put(LoginDataConstants.PERSONA_SKIN, false);
-        skinData.put(LoginDataConstants.PIECE_TINTS, LoginDataConstants.VOID_JSON_ARRAY);
-        skinData.put(LoginDataConstants.PLATFORM_OFFLINE_ID, TextFormat.VOID_STR);
-        skinData.put(LoginDataConstants.PLATFORM_ONLINE_ID, TextFormat.VOID_STR);
-        skinData.put(LoginDataConstants.PREMIUM_SKIN, false);
-        skinData.put(LoginDataConstants.SELF_SIGNED_ID, this.UUID);
-        skinData.put(LoginDataConstants.SERVER_ADDRESS, LoginDataConstants.SERVER_ADDRESS_VAL);
-        skinData.put(LoginDataConstants.SKIN_ANIM_DATA, TextFormat.VOID_STR);
-        skinData.put(LoginDataConstants.SKIN_COLOR, LoginDataConstants.SKIN_COLOR_VAL);
-        skinData.put(LoginDataConstants.SKIN_DATA, Utils.usernameToSkinData(this.classicUsername));
-        skinData.put(LoginDataConstants.SKIN_GEOM_DATA, Base64.getEncoder().encodeToString(ProxyServer.getInstance().getDefaultSkinGeometry().getBytes()));
-        skinData.put(LoginDataConstants.SKIN_ID, this.UUID + ".Custom");
-        skinData.put(LoginDataConstants.SKIN_HEIGHT, 64);
-        skinData.put(LoginDataConstants.SKIN_WIDTH, 64);
-        skinData.put(LoginDataConstants.SKIN_RESOURCE_PATCH, LoginDataConstants.SKIN_RESOURCE_PATCH_VAL);
-        skinData.put(LoginDataConstants.THIRD_PARTY_NAME, this.username);
-        skinData.put(LoginDataConstants.THIRD_PARTY_ONLY, false);
-        skinData.put(LoginDataConstants.UI_PROFILE, 0);
-        skinData.put(LoginDataConstants.IS_EDITOR, 0);
-        skinData.put(LoginDataConstants.TRUSTED_SKIN, 1);
-        skinData.put(LoginDataConstants.SKIN_GEOM_ENGINE_VER, Base64.getEncoder().encodeToString(ProxyServer.getInstance().getBedrockPacketCodec().getMinecraftVersion().getBytes()));
-        skinData.put(LoginDataConstants.OVERRIDE_SKIN, false);
-
-        return generateJwt(jwtHeader, skinData);
-    }
-
-    private String generateJwt(JSONObject jwtHeader, JSONObject chain) {
-        String header = Base64.getUrlEncoder().withoutPadding().encodeToString(jwtHeader.toJSONString().getBytes());
-        String payload = Base64.getUrlEncoder().withoutPadding().encodeToString(chain.toJSONString().getBytes());
-
-        byte[] dataToSign = (header + "." + payload).getBytes();
-        byte[] signatureBytes = null;
-        try {
-            Signature signature = Signature.getInstance("SHA384withECDSA");
-            signature.initSign(this.privateKey);
-            signature.update(dataToSign);
-            signatureBytes = Utils.DERToJOSE(signature.sign(), Utils.AlgorithmType.ECDSA384);
-        } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException ignored) {
-        }
-        String signatureString = Base64.getUrlEncoder().withoutPadding().encodeToString(signatureBytes);
-
-        return header + "." + payload + "." + signatureString;
-    }
-
-    public void sendMessage(String message) {
-        if(Utils.containsExt(ProxyServer.getInstance().getExtDatapacks().get(8), this.extensionsClassic)){
-            this.sendMessage(message, PlayerIds.CHAT);
-        }else{
-            this.sendMessage(message, PlayerIds.CONSOLE);
-        }
-    }
-
-    public void sendMessage(String message, int playerId){
-        if(!Utils.containsExt(ProxyServer.getInstance().getExtDatapacks().get(15), this.extensionsClassic)){
-            message = Utils.sanitizeText(message);
-        }
-        String[] messagesClassic = Utils.splitStringL(TextFormat.colorizeToCc(message, Utils.containsExt(ProxyServer.getInstance().getExtDatapacks().get(17), this.extensionsClassic)), MAXLENMSG);
-        if(messagesClassic.length < 2){
-            this.classicSession.send(new ServerChatPacket(playerId, messagesClassic[0]));
-            return;
-        }
-        for (String msg : messagesClassic) {
-            this.classicSession.send(new ServerChatPacket(playerId, msg));
-        }
-    }
-    
-    public void sendTip(String message) {
-        if(Utils.containsExt(ProxyServer.getInstance().getExtDatapacks().get(8), this.extensionsClassic)){
-            this.sendMessage(message, PlayerIds.BOTTOMRIGHT3);
-            ProxyServer.getInstance().getScheduler().schedule(this::clearTip, 3, TimeUnit.SECONDS);
-        }else{
-            this.sendMessage(message, PlayerIds.CONSOLE);
-        }
-    }
-
-    private void clearTip(){
-        this.classicSession.send(CLEAR_TIP_PK);
-    }
-
-    public void clearTitle(){
-        this.classicSession.send(CLEAR_TITLE_PK);
-    }
-
-    public void clearToast(){
-        this.classicSession.send(CLEAR_TOAST_PK1);
-        this.classicSession.send(CLEAR_TOAST_PK2);
-    }
-    public void clearBoss(){
-        this.classicSession.send(CLEAR_BOSS_PK);
-    }
-    public void clearScore(){
-        this.classicSession.send(CLEAR_SCORE_PK);
-    }
-    public void sendColors(){
-        for(ServerSetTextColorPacket color : ProxyServer.getInstance().getColorsMC()){
-            this.classicSession.send(color);
+            comcraftSession.disconnect("Failed to connect: " + exception);
         }
     }
 
@@ -500,18 +144,11 @@ public class Player extends Vector3 {
         playerInputExecutor.shutdown();
         worldThread.shutdown();
         try {
-            this.bedrockClientSession.disconnect();
+            this.classicSession.disconnect(reason);
         } catch (Throwable ignored) {
         }
-        if (this.channel.isOpen()) {
-            this.channel.disconnect();
-            this.channel.parent().disconnect();
-        }
-        if(reason.contains(disconTransDerect)){
-            reason = ProxyServer.getInstance().getLangManager().translate(reason, null);
-        }
-        this.classicSession.disconnect(TextFormat.colorizeToCc(reason, Utils.containsExt(ProxyServer.getInstance().getExtDatapacks().get(17), this.extensionsClassic)));
-        ProxyServer.getInstance().removeBedrockPlayer(classicUsername);
+        this.comcraftSession.disconnect(reason);
+        ProxyServer.getInstance().removeClassicPlayer(classicUsername);
         this.mapClassic = null;
         ProxyServer.getInstance().getLogger().info(classicUsername + " disconnected: " + reason);
     }
@@ -565,69 +202,5 @@ public class Player extends Vector3 {
             gos.finish();
         }
         return baos.toByteArray();
-    }
-}
-
-class PlayerPingThread implements Runnable{
-    public Player player;
-    public void run(){
-        if(player.getClassicSession().isConnected()){
-            player.getClassicSession().send(new ServerPingPacket());
-        }
-    }
-}
-
-class PlayerAuthInputThread implements Runnable {
-    public Player player;
-    public long tick;
-
-    public void run() {
-        try {
-            if (player.getBedrockClientSession().isConnected()) {
-                ++tick;
-
-                PlayerAuthInputPacket pk = new PlayerAuthInputPacket();
-
-                pk.setPosition(player.getVector3f());
-                pk.setRotation(Vector3f.from(player.getPitch(), player.getYaw(), player.getYaw()));
-                pk.setMotion(Vector2f.ZERO);
-                pk.setInputInteractionModel(InputInteractionModel.CROSSHAIR);
-                pk.setInputMode(InputMode.MOUSE);
-                pk.setPlayMode(ClientPlayMode.SCREEN);
-                pk.setVrGazeDirection(null);
-                pk.setTick(tick);
-                pk.setDelta(Vector3f.from(player.getVector3f().getX() - player.getOldPosition().getX(), player.getVector3f().getY() - player.getOldPosition().getY(), player.getVector3f().getZ() - player.getOldPosition().getZ()));
-                pk.setItemStackRequest(null);
-                pk.setItemUseTransaction(player.getPlayerAuthInputItemUseTransaction());
-                pk.setAnalogMoveVector(Vector2f.ZERO);
-
-                pk.getInputData().addAll(player.getPlayerAuthInputData());
-                pk.getPlayerActions().addAll(player.getPlayerAuthInputActions());
-
-                if (player.isSneaking()) {
-                    pk.getInputData().add(PlayerAuthInputData.SNEAKING);
-                }
-                if (player.isSprinting()) {
-                    pk.getInputData().add(PlayerAuthInputData.SPRINTING);
-                }
-                /*if (player.getDiggingStatus() == PlayerActionType.START_BREAK) {
-                    pk.getInputData().add(PlayerAuthInputData.PERFORM_BLOCK_ACTIONS);
-
-                    PlayerBlockActionData blockActionData = new PlayerBlockActionData();
-                    blockActionData.setAction(PlayerActionType.CONTINUE_BREAK);
-                    blockActionData.setBlockPosition(player.getDiggingPosition());
-                    blockActionData.setFace(player.getDiggingFace().ordinal());
-                    pk.getPlayerActions().add(blockActionData);
-                }*/
-
-                player.getBedrockClientSession().sendPacketImmediately(pk);
-
-                player.getPlayerAuthInputData().removeAll(player.getPlayerAuthInputData());
-                player.getPlayerAuthInputActions().removeAll(player.getPlayerAuthInputActions());
-                player.setPlayerAuthInputItemUseTransaction(null);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 }

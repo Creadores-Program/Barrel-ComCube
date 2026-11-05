@@ -64,7 +64,6 @@ public class ProxyServer {
         add(new ClientExtEntryPacket(1, ExtNames.CUSTOMBLOCKS));//0
         add(new ClientExtEntryPacket(1, ExtNames.HACKCONTROL));//1
         add(new ClientExtEntryPacket(1, ExtNames.BULKBLOCKUPDATE));//2
-        add(new ClientExtEntryPacket(1, ExtNames.EXTENTITYTELEPORT));//3
     }};
 
     public ProxyServer(String dataPath) {
