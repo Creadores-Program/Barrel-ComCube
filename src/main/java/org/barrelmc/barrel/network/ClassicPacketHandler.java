@@ -16,7 +16,7 @@ import org.barrelmc.barrel.server.ProxyServer;
 
 public class ClassicPacketHandler extends SessionAdapter {
 
-    private Player player = null;
+    private Player player;
 
     public ClassicPacketHandler(Player player){
         this.player = player;
