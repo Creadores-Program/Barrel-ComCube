@@ -7,12 +7,13 @@ package org.barrelmc.barrel.player;
 
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
-import com.github.steveice10.mc.classic.protocol.data.game.PlayerIds;
-import com.github.steveice10.mc.classic.protocol.packet.client.ClientExtEntryPacket;
-import com.github.steveice10.mc.classic.protocol.packet.client.ClientIdentificationPacket;
+import com.github.steveice10.mc.classic.protocol.packet.server.ServerExtEntryPacket;
 import com.github.steveice10.mc.classic.protocol.packet.server.ServerLevelDataPacket;
 import com.github.steveice10.mc.classic.protocol.packet.server.ServerLevelFinalizePacket;
+import com.github.steveice10.mc.classic.protocol.ClassicProtocol;
 import com.github.steveice10.packetlib.Session;
+import com.github.steveice10.packetlib.Client;
+import com.github.steveice10.packetlib.tcp.classic.TcpSessionFactory;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -22,7 +23,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.barrelmc.barrel.config.Config;
 import org.barrelmc.barrel.math.Vector3;
-import org.barrelmc.barrel.network.BedrockBatchHandler;
+import org.barrelmc.barrel.network.ClassicPacketHandler;
 import org.barrelmc.barrel.network.translator.PacketTranslatorManager;
 import org.barrelmc.barrel.server.ProxyServer;
 import org.barrelmc.barrel.utils.Utils;
@@ -75,7 +76,7 @@ public class Player extends Vector3 {
 
 
     @Getter
-    private List<ClientExtEntryPacket> extensionsClassic = new ObjectArrayList<>();
+    private List<ServerExtEntryPacket> extensionsClassic = new ObjectArrayList<>();
 
     public static final int WORLDLEN = 256;
 
@@ -84,6 +85,7 @@ public class Player extends Vector3 {
     private static final ServerLevelFinalizePacket FINALIZE_WORLD_PK = new ServerLevelFinalizePacket(256, 256, 256);
 
     @Getter
+    @Setter
     private ByteBuffer mapClassic = ByteBuffer.allocateDirect(WORLDTOTALLEN);
 
     @Getter
@@ -110,10 +112,6 @@ public class Player extends Vector3 {
     @Getter
     private Map<Long, Long> entitysIndex = new ConcurrentHashMap<>();
 
-    private static final int MAXLENMSG = 64;
-
-    private static final String CCP = "CC";
-
     public Player(ClientLoginPacket loginPacket, Session comcraftSession) {
         this.envCpe = new EnvCPE(this);
         this.packetTranslatorManager = new PacketTranslatorManager(this);
@@ -134,7 +132,11 @@ public class Player extends Vector3 {
         this.username = this.classicUsername = comcraftLoginPacket.getUsername();
         Config config = ProxyServer.getInstance().getConfig();
         InetSocketAddress bedrockAddress = new InetSocketAddress(config.getBedrockAddress(), config.getBedrockPort());
-        try {//
+        try {
+            Client client = new Client(config.getClassicAddress(), config.getClassicPort(), new ClassicProtocol(this.username, "-", true), new TcpSessionFactory());
+            this.classicSession = client.getSession();
+            this.classicSession.addListener(new ClassicPacketHandler(this)):
+            this.classicSession.connect(true);
         } catch (Exception exception) {
             comcraftSession.disconnect("Failed to connect: " + exception);
         }
@@ -151,11 +153,6 @@ public class Player extends Vector3 {
         ProxyServer.getInstance().removeClassicPlayer(classicUsername);
         this.mapClassic = null;
         ProxyServer.getInstance().getLogger().info(classicUsername + " disconnected: " + reason);
-    }
-
-    @Override
-    public void setPosition(Vector3f vector3f) {
-        super.setPosition(vector3f);
     }
 
     @Override
