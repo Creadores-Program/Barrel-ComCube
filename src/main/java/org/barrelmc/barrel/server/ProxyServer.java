@@ -9,6 +9,7 @@ import com.github.steveice10.comcraft.protocol.ComcraftConstants;
 import com.github.steveice10.comcraft.protocol.ComcraftProtocol;
 import com.github.steveice10.mc.classic.protocol.data.game.ExtNames;
 import com.github.steveice10.mc.classic.protocol.packet.client.ClientExtEntryPacket;
+import com.github.steveice10.mc.classic.protocol.packet.client.ClientExtInfoPacket;
 import com.github.steveice10.packetlib.Server;
 import com.github.steveice10.packetlib.tcp.comcraft.TcpSessionFactory;
 import com.github.steveice10.packetlib.event.server.ServerAdapter;
@@ -65,6 +66,9 @@ public class ProxyServer {
         add(new ClientExtEntryPacket(1, ExtNames.HACKCONTROL));//1
         add(new ClientExtEntryPacket(1, ExtNames.BULKBLOCKUPDATE));//2
     }};
+
+    @Getter
+    private ClientExtInfoPacket extInfo = new ClientExtInfoPacket("ComcraftML 0.6 | Barrel ComCube 0.1.0", extDatapacks.size());
 
     public ProxyServer(String dataPath) {
         instance = this;

@@ -9,7 +9,6 @@ import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.github.steveice10.mc.classic.protocol.packet.server.ServerExtEntryPacket;
 import com.github.steveice10.mc.classic.protocol.packet.server.ServerLevelDataPacket;
-import com.github.steveice10.mc.classic.protocol.packet.server.ServerLevelFinalizePacket;
 import com.github.steveice10.mc.classic.protocol.ClassicProtocol;
 import com.github.steveice10.packetlib.Session;
 import com.github.steveice10.packetlib.Client;
@@ -66,9 +65,6 @@ public class Player extends Vector3 {
     @Getter
     private String classicUsername;
 
-    @Getter
-    private EnvCPE envCpe = null;
-
     private final ScheduledExecutorService playerInputExecutor = Executors.newScheduledThreadPool(3);
     
     @Getter
@@ -81,8 +77,6 @@ public class Player extends Vector3 {
     public static final int WORLDLEN = 256;
 
     private static final int WORLDTOTALLEN = WORLDLEN * WORLDLEN * WORLDLEN;
-
-    private static final ServerLevelFinalizePacket FINALIZE_WORLD_PK = new ServerLevelFinalizePacket(256, 256, 256);
 
     @Getter
     @Setter
@@ -113,7 +107,6 @@ public class Player extends Vector3 {
     private Map<Long, Long> entitysIndex = new ConcurrentHashMap<>();
 
     public Player(ClientLoginPacket loginPacket, Session comcraftSession) {
-        this.envCpe = new EnvCPE(this);
         this.packetTranslatorManager = new PacketTranslatorManager(this);
         this.comcraftSession = comcraftSesssion;
         this.offlineLogin(loginPacket);
