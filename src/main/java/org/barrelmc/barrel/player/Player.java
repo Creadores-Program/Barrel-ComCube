@@ -9,7 +9,9 @@ import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.github.steveice10.mc.classic.protocol.packet.server.ServerExtEntryPacket;
 import com.github.steveice10.mc.classic.protocol.packet.server.ServerLevelDataPacket;
+import com.github.steveice10.mc.classic.protocol.packet.server.ServerLevelFinalizePacket;
 import com.github.steveice10.mc.classic.protocol.ClassicProtocol;
+import com.github.steveice10.comcraft.protocol.packet.server.ServerWorldInfoPacket;
 import com.github.steveice10.packetlib.Session;
 import com.github.steveice10.packetlib.Client;
 import com.github.steveice10.packetlib.tcp.classic.TcpSessionFactory;
@@ -74,6 +76,14 @@ public class Player extends Vector3 {
     @Getter
     private List<ServerExtEntryPacket> extensionsClassic = new ObjectArrayList<>();
 
+    @Getter
+    @Setter
+    private boolean comcraftReady = false;
+
+    @Getter
+    @Setter
+    private ServerLevelFinalizePacket classicFinalize = null;
+
     public static final int WORLDLEN = 256;
 
     private static final int WORLDTOTALLEN = WORLDLEN * WORLDLEN * WORLDLEN;
@@ -110,6 +120,11 @@ public class Player extends Vector3 {
         this.packetTranslatorManager = new PacketTranslatorManager(this);
         this.comcraftSession = comcraftSesssion;
         this.offlineLogin(loginPacket);
+    }
+
+    public void sendWorldInfo(){
+        ServerWorldInfoPacket pk = new ServerWorldInfoPacket(Math.max(this.classicFinalize.getWidth(), Math.max(this.classicFinalize.getHeight(), this.classicFinalize.getDepth())), (float) this.x, (float) this.y, (float) this.z, (float) this.x, (float) this.y, (float) this.z, this.pitch, this.yaw, ProxyServer.getInstance().getSlots(), false, new com.github.steveice10.comcraft.protocol.data.game.Player[0]);
+        this.classicSession.send(pk);
     }
 
     public void startLevelChunkProcess(){

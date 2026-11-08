@@ -7,6 +7,7 @@ package org.barrelmc.barrel.server;
 
 import com.github.steveice10.comcraft.protocol.ComcraftConstants;
 import com.github.steveice10.comcraft.protocol.ComcraftProtocol;
+import com.github.steveice10.comcraft.protocol.data.game.Slot;
 import com.github.steveice10.mc.classic.protocol.data.game.ExtNames;
 import com.github.steveice10.mc.classic.protocol.packet.client.ClientExtEntryPacket;
 import com.github.steveice10.mc.classic.protocol.packet.client.ClientExtInfoPacket;
@@ -61,14 +62,21 @@ public class ProxyServer {
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
     @Getter
-    private List<ClientExtEntryPacket> extDatapacks = new ObjectArrayList<>(){{
+    private final List<ClientExtEntryPacket> extDatapacks = new ObjectArrayList<>(){{
         add(new ClientExtEntryPacket(1, ExtNames.CUSTOMBLOCKS));//0
         add(new ClientExtEntryPacket(1, ExtNames.HACKCONTROL));//1
         add(new ClientExtEntryPacket(1, ExtNames.BULKBLOCKUPDATE));//2
     }};
 
     @Getter
-    private ClientExtInfoPacket extInfo = new ClientExtInfoPacket("ComcraftML 0.6 | Barrel ComCube 0.1.0", extDatapacks.size());
+    private final ClientExtInfoPacket extInfo = new ClientExtInfoPacket("ComcraftML 0.6 | Barrel ComCube 0.1.0", extDatapacks.size());
+
+    @Getter
+    private final Slot[] slots = {
+        new Slot(1, 1),
+        new Slot(16, 1),
+        new Slot(9, 1)
+    };
 
     public ProxyServer(String dataPath) {
         instance = this;
