@@ -20,7 +20,6 @@ import com.github.steveice10.packetlib.event.server.SessionRemovedEvent;
 import lombok.Getter;
 import org.barrelmc.barrel.config.Config;
 import org.barrelmc.barrel.network.ComcraftPacketHandler;
-import org.barrelmc.barrel.player.LoginDataConstants;
 import org.barrelmc.barrel.player.Player;
 import org.barrelmc.barrel.utils.FileManager;
 import org.barrelmc.barrel.utils.NbtBlockDefinitionRegistry;
@@ -69,7 +68,7 @@ public class ProxyServer {
     }};
 
     @Getter
-    private final ClientExtInfoPacket extInfo = new ClientExtInfoPacket("ComcraftML 0.6 | Barrel ComCube 0.1.0", extDatapacks.size());
+    private final ClientExtInfoPacket extInfo = new ClientExtInfoPacket("ComcraftML 0.6 | Barrel ComCube 0.1.0", (short) extDatapacks.size());
 
     @Getter
     private final Slot[] slots = {
@@ -88,7 +87,6 @@ public class ProxyServer {
             System.exit(1);
         }
         loadBlockDefinitions();
-        LoginDataConstants.SERVER_ADDRESS_VAL = this.config.getClassicAddress() + ":" + this.config.getClassicPort();
         startServer();
     }
 

@@ -12,6 +12,7 @@ import com.github.steveice10.mc.classic.protocol.packet.server.ServerLevelDataPa
 import com.github.steveice10.mc.classic.protocol.packet.server.ServerLevelFinalizePacket;
 import com.github.steveice10.mc.classic.protocol.ClassicProtocol;
 import com.github.steveice10.comcraft.protocol.packet.server.ServerWorldInfoPacket;
+import com.github.steveice10.comcraft.protocol.packet.client.ClientLoginPacket;
 import com.github.steveice10.packetlib.Session;
 import com.github.steveice10.packetlib.Client;
 import com.github.steveice10.packetlib.tcp.classic.TcpSessionFactory;
@@ -118,7 +119,7 @@ public class Player extends Vector3 {
 
     public Player(ClientLoginPacket loginPacket, Session comcraftSession) {
         this.packetTranslatorManager = new PacketTranslatorManager(this);
-        this.comcraftSession = comcraftSesssion;
+        this.comcraftSession = comcraftSession;
         this.offlineLogin(loginPacket);
     }
 
@@ -139,11 +140,10 @@ public class Player extends Vector3 {
     private void offlineLogin(ClientLoginPacket comcraftLoginPacket) {
         this.username = this.classicUsername = comcraftLoginPacket.getUsername();
         Config config = ProxyServer.getInstance().getConfig();
-        InetSocketAddress bedrockAddress = new InetSocketAddress(config.getBedrockAddress(), config.getBedrockPort());
         try {
             Client client = new Client(config.getClassicAddress(), config.getClassicPort(), new ClassicProtocol(this.username, "-", true), new TcpSessionFactory());
             this.classicSession = client.getSession();
-            this.classicSession.addListener(new ClassicPacketHandler(this)):
+            this.classicSession.addListener(new ClassicPacketHandler(this));
             this.classicSession.connect(true);
         } catch (Exception exception) {
             comcraftSession.disconnect("Failed to connect: " + exception);

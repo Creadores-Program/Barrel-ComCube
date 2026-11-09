@@ -40,7 +40,7 @@ java/build/**
 tests/
 
 # Vscode Config
-.vscode/
+.vscode/**
 
 #Node.js
 autoruntimeblocks/node_modules/

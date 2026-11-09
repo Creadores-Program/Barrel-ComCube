@@ -5,7 +5,7 @@ import org.barrelmc.barrel.player.StatusWorld;
 import org.barrelmc.barrel.utils.Utils;
 
 import com.github.steveice10.packetlib.packet.Packet;
-import com.github.steveice10.comcube.protocol.packet.client.ClientPlayerDataPacket;
+import com.github.steveice10.comcraft.protocol.packet.client.ClientPlayerDataPacket;
 import com.github.steveice10.mc.classic.protocol.packet.server.ServerPositionRotationPacket;
 import com.github.steveice10.mc.classic.protocol.data.game.PlayerIds;
 public class PositionRotationPacket implements ClassicPacketTranslator{

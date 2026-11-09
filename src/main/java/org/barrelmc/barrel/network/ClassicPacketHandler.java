@@ -5,7 +5,6 @@
 
 package org.barrelmc.barrel.network;
 
-import com.github.steveice10.packetlib.Session;
 import com.github.steveice10.packetlib.event.session.PacketReceivedEvent;
 import com.github.steveice10.packetlib.event.session.PacketSentEvent;
 import com.github.steveice10.packetlib.event.session.DisconnectingEvent;
@@ -37,7 +36,6 @@ public class ClassicPacketHandler extends SessionAdapter {
 
     @Override
     public void packetReceived(PacketReceivedEvent event) {
-        Session session = event.getSession();
         Packet packet = event.getPacket();
         //System.out.println("Received Classic " + packet.toString());
         player.getPacketTranslatorManager().translate(packet);

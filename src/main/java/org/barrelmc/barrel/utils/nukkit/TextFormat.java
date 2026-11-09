@@ -44,6 +44,8 @@ public enum TextFormat {
 
     private final String ansiCode;
 
+    public static final String VOID_STR = "";
+
     
     TextFormat(String ansiCode) {
         this.ansiCode = ansiCode;
