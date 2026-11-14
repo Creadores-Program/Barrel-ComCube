@@ -21,9 +21,6 @@ import lombok.Getter;
 import org.barrelmc.barrel.config.Config;
 import org.barrelmc.barrel.network.ComcraftPacketHandler;
 import org.barrelmc.barrel.player.Player;
-import org.barrelmc.barrel.utils.FileManager;
-import org.barrelmc.barrel.utils.NbtBlockDefinitionRegistry;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.yaml.snakeyaml.Yaml;
 import org.barrelmc.barrel.utils.Logger;
 import org.barrelmc.barrel.utils.nukkit.TextFormat;
@@ -52,16 +49,13 @@ public class ProxyServer {
     private Config config;
 
     @Getter
-    private NbtBlockDefinitionRegistry blockDefinitions;
-
-    @Getter
     private Logger logger;
 
     @Getter
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
     @Getter
-    private final List<ClientExtEntryPacket> extDatapacks = new ObjectArrayList<>(){{
+    private final List<ClientExtEntryPacket> extDatapacks = new ArrayList<>(){{
         add(new ClientExtEntryPacket(1, ExtNames.CUSTOMBLOCKS));//0
         add(new ClientExtEntryPacket(1, ExtNames.HACKCONTROL));//1
         add(new ClientExtEntryPacket(1, ExtNames.BULKBLOCKUPDATE));//2
@@ -86,7 +80,6 @@ public class ProxyServer {
             this.getLogger().emergency("Config file not found! Terminating...");
             System.exit(1);
         }
-        loadBlockDefinitions();
         startServer();
     }
 
@@ -111,20 +104,6 @@ public class ProxyServer {
         return true;
     }
 
-    private void loadBlockDefinitions() {
-        try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream("block_palette.nbt")) {
-            assert inputStream != null;
-            try (NBTInputStream nbtInputStream = NbtUtils.createGZIPReader(inputStream)) {
-                Object object = nbtInputStream.readTag();
-                if (object instanceof NbtMap) {
-                    NbtMap blocksTag = (NbtMap) object;
-                    blockDefinitions = new NbtBlockDefinitionRegistry(blocksTag.getList("blocks", NbtType.COMPOUND));
-                }
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to load block definitions", e);
-        }
-    }
 
     private void startServer() {
         Server server = new Server(this.config.getBindAddress(), this.config.getPort(), ComcraftProtocol.class, new TcpSessionFactory());

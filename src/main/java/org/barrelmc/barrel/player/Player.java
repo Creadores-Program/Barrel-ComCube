@@ -20,7 +20,6 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioDatagramChannel;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import lombok.Getter;
 import lombok.Setter;
 import org.barrelmc.barrel.config.Config;
@@ -75,7 +74,7 @@ public class Player extends Vector3 {
 
 
     @Getter
-    private List<ServerExtEntryPacket> extensionsClassic = new ObjectArrayList<>();
+    private List<ServerExtEntryPacket> extensionsClassic = new ArrayList<>();
 
     @Getter
     @Setter
